@@ -1,0 +1,22 @@
+[package]
+name = "rust_disk_cleaner"
+version = "0.1.0"
+edition = "2021"
+authors = ["aspnmy <support@e2bank.cn>"]
+description = "C盘无用文件快速清理工具"
+license = "MIT"
+
+[dependencies]
+chrono = "0.4"
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.8"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+
+[[bin]]
+name = "disk_cleaner"
+path = "src/main.rs"

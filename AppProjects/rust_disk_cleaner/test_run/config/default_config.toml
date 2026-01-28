@@ -1,0 +1,62 @@
+# C盘清理工具配置文件
+
+# 扫描路径列表（按优先级排序）
+# 注意：${TEMP} 会被替换为系统临时目录的环境变量值
+scan_paths = [
+    # Windows系统临时目录（使用环境变量）
+    "${TEMP}",
+
+    # 用户目录（包含所有用户数据）
+    "C:\\Users",
+
+    # 程序数据目录
+    "C:\\ProgramData\\Microsoft\\Windows\\WER",
+
+    # Windows更新缓存
+    "C:\\Windows\\SoftwareDistribution\\Download",
+
+    # Windows日志文件
+    "C:\\Windows\\Logs",
+
+    # Windows prefetch缓存
+    "C:\\Windows\\Prefetch",
+]
+
+# 排除路径列表（不会被扫描的路径）
+exclude_paths = [
+    # Windows系统目录
+    "Windows\\System32",
+    "Windows\\SysWOW64",
+
+    # 程序安装目录
+    "Program Files",
+    "Program Files (x86)",
+
+    # 程序数据目录
+    "ProgramData\\Packages",
+
+    # 回收站
+    "$Recycle.Bin",
+
+    # 系统卷信息
+    "System Volume Information",
+
+    # 用户重要数据
+    "Users\\*\\Documents",
+    "Users\\*\\Desktop",
+    "Users\\*\\Pictures",
+    "Users\\*\\Music",
+    "Users\\*\\Videos",
+]
+
+# 文件最大年龄（天）
+max_age_days = 30
+
+# 最小文件大小（字节，0表示不限制）
+min_file_size = 0
+
+# 是否为预览模式（true表示不实际删除文件）
+dry_run = true
+
+# 是否输出详细信息
+verbose = true

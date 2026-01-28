@@ -1,0 +1,26 @@
+# Rust
+/target/
+**/*.rs.bk
+*.pdb
+ralph/
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Reports
+reports/
+
+# Config
+config/*.toml
+!config/*.toml.example

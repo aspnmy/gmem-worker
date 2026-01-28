@@ -1,0 +1,101 @@
+{
+  "projectName": "GmemWorker",
+  "memories": [
+    {
+      "id": "m_20260127T150000000Z_project",
+      "text": "所有新增的csdn的blog md文件均保存在本项目的docs目录下",
+      "tags": ["gmem", "preference", "development", "csdn", "blog"],
+      "keywords": ["csdn", "blog", "docs", "markdown"],
+      "createdAt": "2026-01-27T15:00:00.000+08:00",
+      "updatedAt": "2026-01-27T15:00:00.000+08:00"
+    },
+    {
+      "id": "m_20260127T160000000Z_project",
+      "text": "C盘清理工具项目：使用Rust语言开发，用于快速清理Windows系统C盘中的无用文件，包括临时文件、缓存文件、日志文件、回收站文件等",
+      "tags": ["gmem", "rust", "windows", "cleanup", "tool"],
+      "keywords": ["rust", "windows", "c盘", "清理", "工具"],
+      "createdAt": "2026-01-27T16:00:00.000+08:00",
+      "updatedAt": "2026-01-27T16:00:00.000+08:00"
+    },
+    {
+      "id": "m_20260127T170000000Z_project",
+      "text": "每次修改项目代码以后如果使用功能有更新，则要对应修改docs目录下的项目md文章，更新文章的时候 在文章的标题下 第一行要记录下时间戳，便于历史文章的管理和维护，时间戳必须以上海为时区，24小时制进行表示",
+      "tags": ["gmem", "preference", "development", "docs", "update"],
+      "keywords": ["docs", "markdown", "update", "timestamp", "shanghai"],
+      "createdAt": "2026-01-27T17:00:00.000+08:00",
+      "updatedAt": "2026-01-27T17:00:00.000+08:00"
+    },
+    {
+      "id": "m_20260127T180000000Z_project",
+      "text": "在本项目下新建ralph目录，本项目ralph规则：{(ralph -f ./ralph/PROMPT.md)，每次调试项目的调试信息必须存入./ralph/PROMPT.md中，然后AI助手再次根据调试信息./ralph/PROMPT.md进行优化和debug，直到未见error、waiting、编码提醒等错误为止；再进行ralph调试时./ralph/PROMPT.md中要记录循环技数，计数超过10次后要登记 human标志，询问用户进行人工干预，不要无限制的循环下去}",
+      "tags": ["gmem", "preference", "development", "ralph", "debug"],
+      "keywords": ["ralph", "PROMPT.md", "debug", "循环计数", "human标志"],
+      "createdAt": "2026-01-27T18:00:00.000+08:00",
+      "updatedAt": "2026-01-27T18:00:00.000+08:00"
+    },
+    {
+      "id": "m_20260127T190000000Z_global",
+      "text": "# Rust编码规范规则 - 所有的函数都需要添加注释，注释中需要包含函数的参数和返回值 - 所有的注释都需要使用Markdown格式或者中文表示，不能使用其他格式 - 所有的注释都需要在函数定义之前添加，不能在函数定义之后添加 - 所有的注释都需要包含函数的参数和返回值，不能缺少 - 所有的注释都需要使用中文表示，不能使用英文表示 - 使用RUST语言编写代码，需要修复所有的警告信息，包括但不限于：未使用的变量、未使用的函数参数、未使用的函数返回值、未使用的类型、未使用的模块、未使用的特征、未使用的生命周期、未使用的关联类型、未使用的关联常量、未使用的关联函数、未使用的关联方法 - 使用rust语言重构旧项目，首先需要完整移植老项目的所有功能，然后修复所有的警告信息，再提交初始重构的rust分支，然后再新建dev_rust分支，进行功能优化 - 在dev_rust分支上进行功能优化，包括但不限于：优化代码结构、优化性能、修复bug、添加新功能、优化代码注释、优化代码文档、优化代码测试、优化代码质量、优化代码风格、优化代码格式、优化代码缩进、优化代码空格、优化代码换行、优化代码注释空格、优化代码文档空格、优化代码测试空格、优化代码质量空格、优化代码风格空格、优化代码格式空格、优化代码缩进空格 - SOLO模式下默认使用Plan模式 - 下次再提交分支的时候特别是重构分支必须先确认被重构的分支的重构代码是否有正确提交 - 语法错误没有完全检查完成前不要build项目，先运行语法检查器检查语法中的错误和警告，修复完成在构造，才能成功build项目 - 优先使用本地wsl2环境编译和运行项目，连接不到wsl2再使用windows环境 - WSL2环境主要用于编译和运行项目，不建议在wsl2环境中进行开发 - 构建容器时rust使用rust:alpine3.23镜像，最终镜像使用alpine:3.23.0，如此获得更小镜像，同时也减少了容器的运行时依赖，提高了容器的安全性，如果构建依赖组件时alpine缺失相关组件，并且无法安装到，则使用debian:12.12-slim来进行编译，再最后合并到最终镜像中，所有的容器构建一律使用多阶段构建，以获得更小的镜像 - git默认配置命令：git config --global user.name \"aspnmy\" && git config --global user.email \"support@e2bank.cn\"",
+      "tags": ["gmem", "rules", "rust", "coding", "global"],
+      "keywords": ["rust", "coding", "rules", "规范", "注释", "编译", "容器", "git"],
+      "createdAt": "2026-01-27T19:00:00.000+08:00",
+      "updatedAt": "2026-01-27T19:00:00.000+08:00"
+    },
+    {
+      "id": "m_20260127T200000000Z_global",
+      "text": "# 命令行操作规范规则 - AI助手在使用命令行命令时，需要注意下面的命令 不能被截断：node 、 build 、 make 等 如果命令字符被截断将会有异常报错，使用命令行工具时必须检查命令输入是否完整 - AI助手在win系统使用和文件新建和修改、删除、查找相关的业务时必须使用pwsh指令，在pwsh指令无效的情况下 把指令输入，呼叫人工执行",
+      "tags": ["gmem", "rules", "command-line", "windows", "global"],
+      "keywords": ["命令行", "pwsh", "windows", "文件操作", "命令完整性"],
+      "createdAt": "2026-01-27T20:00:00.000+08:00",
+      "updatedAt": "2026-01-27T20:00:00.000+08:00"
+    },
+    {
+      "id": "m_20260127T210000000Z_global",
+      "text": "# 编译文件名规范规则 - 无论是什么项目代码进行编译时，编译的文件名后方都应该加入时间戳后缀(截取成6位)，这样无需等待关闭前面的调试程序，不会造成编译进程失败",
+      "tags": ["gmem", "rules", "compilation", "timestamp", "global"],
+      "keywords": ["编译", "文件名", "时间戳", "后缀", "6位"],
+      "createdAt": "2026-01-27T21:00:00.000+08:00",
+      "updatedAt": "2026-01-27T21:00:00.000+08:00"
+    },
+    {
+      "id": "m_20260127T220000000Z_project",
+      "text": "每次用户发布同步git到远程仓库时，都要清理项目的中间文件，target目录下只保留编译好的exe文件，其他资源文件均清理干净，每次编译的时候都使用纯净编译避免出错",
+      "tags": ["gmem", "preference", "development", "git", "clean"],
+      "keywords": ["git", "同步", "清理", "target", "exe", "纯净编译"],
+      "createdAt": "2026-01-27T22:00:00.000+08:00",
+      "updatedAt": "2026-01-27T22:00:00.000+08:00"
+    },
+    {
+      "id": "m_20260127T230000000Z_global",
+      "text": "# 配置文件管理规范规则 - 无论是什么项目进行编译，都应该独立运行，如需加载配置文件，都应该在被执行的文件的同级目录./config/ 下加载自身的配置文件，如果配置文件不存在，被执行的程序应该释放一份初始备份，这样普通用户在使用时不会因为缺失配置文件造成意外的错误",
+      "tags": ["gmem", "rules", "configuration", "deployment", "global"],
+      "keywords": ["配置文件", "独立运行", "自动释放", "用户体验", "错误处理"],
+      "createdAt": "2026-01-27T23:00:00.000+08:00",
+      "updatedAt": "2026-01-27T23:00:00.000+08:00"
+    },
+    {
+      "id": "m_20260128T080000000Z_project",
+      "text": "全局记忆路径查找规则：1)优先查找系统环境变量%Gmemfiles%登记的位置；2)如果%Gmemfiles%不存在，则查找%GmemExeHome%变量下的.env文件中登记的MEMORY_PATH参数；3)如果%GmemExeHome%不存在，则搜索copilot-memory-store项目的位置，然后读取其中的.env文件中的MEMORY_PATH参数；4)如果以上步骤全部执行后仍然找不到配置，则询问用户实际路径。当前全局记忆路径："E:\GmemWorkerHome\global-memory-recorder.json"",
+      "tags": ["gmem", "preference", "development", "memory", "path"],
+      "keywords": ["全局记忆", "Gmemfiles", "GmemExeHome", "MEMORY_PATH", "copilot-memory-store", "路径查找"],
+      "createdAt": "2026-01-28T08:00:00.000+08:00",
+      "updatedAt": "2026-01-28T08:00:00.000+08:00"
+    },
+    {
+      "id": "m_20260128T090000000Z_global",
+      "text": "# Everything工具搜索操作规范规则 - 使用everything工具搜索数据时不需要返回思考过程，只需要直接返回结果，然后对结果进行分析是否有被搜索的文件，如果不存在的情况下再进行后续工作判定，如果被搜索的文件存在需要先询问用户是否备份，如果用户选择yes进行备份后才能执行覆盖、修改、删除等操作。如果用户离开，询问用户超过3分钟无应答，则自行执行文件备份，备份后再执行覆盖、修改、删除等操作；只是读取被搜索的文件，或者被搜索的文件夹下方递归的所有文件不需要人工参与直接执行，本全局规则必须严格执行",
+      "tags": ["gmem", "rules", "everything", "backup", "workflow", "global"],
+      "keywords": ["everything", "搜索", "备份", "文件", "覆盖", "修改", "删除", "3分钟", "无应答"],
+      "createdAt": "2026-01-28T09:00:00.000+08:00",
+      "updatedAt": "2026-01-28T09:00:00.000+08:00"
+    },
+    {
+      "id": "m_20260128T100000000Z_global",
+      "text": "# Gmem工具使用规范规则 - 使用gmem工具增加记忆时，优先使用mcp工具；不需要返回思考过程，只需要返回结果，是存入成功还是失败，如果存入失败再找寻其他更新方式",
+      "tags": ["gmem", "rules", "mcp", "memory", "workflow", "global"],
+      "keywords": ["gmem", "mcp", "记忆", "存入", "失败", "更新方式"],
+      "createdAt": "2026-01-28T10:00:00.000+08:00",
+      "updatedAt": "2026-01-28T10:00:00.000+08:00"
+    }
+  ]
+}
