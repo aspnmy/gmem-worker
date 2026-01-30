@@ -36,6 +36,7 @@ GmemWorker/
 - **记忆注入**：可将相关记忆注入到当前对话上下文中
 - **版本控制**：支持记忆的软删除和回滚机制
 - **确定性压缩**：将相关记忆压缩为预算约束的 markdown 块
+- **MCP 服务器**：提供 Model Context Protocol 服务器，方便 AI 工具助手调用
 
 ### 2. AI 开发边界管理
 
@@ -61,9 +62,14 @@ GmemWorker/
 # 编译好的文件位于：GmemWorker/bin/GmemoryStore.exe
 
 # 方法2：从源码编译
-cd gmem_rust_memory_store
+cd AppProjects/gmem_rust_memory_store
 cargo build --release
 # 编译后的文件位于：target/release/GmemoryStore.exe
+
+# 方法3：编译 MCP 服务器
+cd AppProjects/gmem_rust_memory_store
+cargo build --release --bin gmemory-mcp-server --features full
+# 编译后的文件位于：target/release/gmemory-mcp-server.exe
 ```
 
 **基本使用**：
@@ -83,6 +89,71 @@ GmemoryStore
 # 压缩记忆（注入到 AI 上下文）
 > compress "Rust 开发规范" --budget 1000
 ```
+
+**MCP 服务器使用**：
+```bash
+# 启动 MCP 服务器（供 AI 工具助手调用）
+gmemory-mcp-server
+
+# MCP 服务器会自动读取配置文件
+# 配置文件位于：GmemWorker/bin/config/.env.toml
+# 可以在 AI 工具助手的配置中添加 MCP 服务器连接
+```
+
+**MCP 服务器配置示例**：
+
+在 AI 工具助手的 MCP 配置文件中添加以下配置：
+
+```json
+{
+  "mcpServers": {
+    "gmem-store": {
+      "command": "V:\\git_data\\GmemWorker\\GmemWorker\\bin\\gmemory-mcp-server.exe",
+      "args": []
+    }
+  }
+}
+```
+
+**配置说明**：
+- `gmem-store`：MCP 服务器的名称（可自定义）
+- `command`：gmemory-mcp-server.exe 的完整路径（请根据实际安装路径修改）
+- `args`：启动参数（通常为空数组）
+
+**VS Code 配置示例**：
+
+在 VS Code 的 `settings.json` 中添加：
+
+```json
+{
+  "mcp.mcpServers": {
+    "gmem-store": {
+      "command": "V:\\git_data\\GmemWorker\\GmemWorker\\bin\\gmemory-mcp-server.exe",
+      "args": []
+    }
+  }
+}
+```
+
+**Cursor 配置示例**：
+
+在 Cursor 的配置文件中添加：
+
+```json
+{
+  "mcpServers": {
+    "gmem-store": {
+      "command": "V:\\git_data\\GmemWorker\\GmemWorker\\bin\\gmemory-mcp-server.exe",
+      "args": []
+    }
+  }
+}
+```
+
+**注意**：
+- 路径分隔符在 Windows 中需要使用双反斜杠 `\\` 或正斜杠 `/`
+- 请将路径修改为实际的 gmemory-mcp-server.exe 安装路径
+- 配置完成后重启 AI 工具助手即可生效
 
 ### 开发新实例项目
 

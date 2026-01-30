@@ -24,3 +24,4 @@ reports/
 # Config
 config/*.toml
 !config/*.toml.example
+GmemWorker/bin/config/*.toml
