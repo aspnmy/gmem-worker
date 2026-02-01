@@ -161,7 +161,7 @@ pub fn run_repl(store: MemoryStore, debug_mode: bool, version: &str) -> io::Resu
 ///
 /// # 返回
 /// IO 错误（如果有）
-fn execute_command(store: &MemoryStore, parsed: &Parsed) -> io::Result<()> {
+pub fn execute_command(store: &MemoryStore, parsed: &Parsed) -> io::Result<()> {
     match parsed.cmd.as_str() {
         "add" => {
             let text = parsed.args.join(" ");

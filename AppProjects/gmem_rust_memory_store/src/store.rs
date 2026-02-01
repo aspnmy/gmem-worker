@@ -6,15 +6,15 @@ use serde_json;
 use crate::record::{MemoryRecord, StoreStats, SearchHit};
 use crate::timestamp::{now_iso, make_id};
 use crate::keywords::extract_keywords;
-use crate::lock::acquire_lock;
+use crate::lock::{acquire_lock_with_cleanup, LockType};
 
 const DEFAULT_MEMORY_PATH: &str = ".copilot-memory.json";
-const DEFAULT_LOCK_NAME: &str = ".copilot-memory.lock";
 
 /// 记忆存储结构
 pub struct MemoryStore {
     memory_path: PathBuf,
     lock_path: PathBuf,
+    lock_type: LockType,
 }
 
 impl MemoryStore {
@@ -22,15 +22,18 @@ impl MemoryStore {
     ///
     /// # 参数
     /// * `memory_path` - 记忆文件路径（可选，默认为 .copilot-memory.json）
+    /// * `lock_type` - 锁文件类型（可选，默认为 Cli）
     ///
     /// # 返回
     /// 新的记忆存储实例
-    pub fn new(memory_path: Option<&str>) -> Self {
+    pub fn new(memory_path: Option<&str>, lock_type: Option<LockType>) -> Self {
         let mp = resolve_memory_path(memory_path);
-        let lock = resolve_lock_path(&mp);
+        let lt = lock_type.unwrap_or(LockType::Cli);
+        let lock = resolve_lock_path(&mp, lt);
         Self {
             memory_path: mp,
             lock_path: lock,
+            lock_type: lt,
         }
     }
 
@@ -67,7 +70,7 @@ impl MemoryStore {
     /// # 错误
     /// 如果文本为空则返回错误
     pub fn add_memory(&self, text: &str, tags: Option<Vec<String>>) -> io::Result<MemoryRecord> {
-        let _lock = acquire_lock(&self.lock_path, None)?;
+        let _lock = acquire_lock_with_cleanup(&self.lock_path, None, Some(300))?;
         let records = self.load()?;
 
         let t = text.trim();
@@ -164,7 +167,7 @@ impl MemoryStore {
     /// # 返回
     /// 是否找到并删除了记忆
     pub fn soft_delete(&self, id: &str) -> io::Result<bool> {
-        let _lock = acquire_lock(&self.lock_path, None)?;
+        let _lock = acquire_lock_with_cleanup(&self.lock_path, None, Some(300))?;
         let mut records = self.load()?;
         
         let found = records.iter_mut().any(|r| {
@@ -194,7 +197,7 @@ impl MemoryStore {
     /// # 返回
     /// 删除的记忆数量
     pub fn purge(&self, id: Option<&str>, tag: Option<&str>, match_text: Option<&str>) -> io::Result<usize> {
-        let _lock = acquire_lock(&self.lock_path, None)?;
+        let _lock = acquire_lock_with_cleanup(&self.lock_path, None, Some(300))?;
         let mut records = self.load()?;
         
         let initial_len = records.len();
@@ -243,32 +246,49 @@ impl MemoryStore {
     /// # 返回
     /// (成功数量, 跳过数量, 失败数量)
     pub fn import_json(&self, json_data: &str) -> io::Result<(usize, usize, usize)> {
-        let _lock = acquire_lock(&self.lock_path, None)?;
+        let _lock = acquire_lock_with_cleanup(&self.lock_path, None, Some(300))?;
         let mut records = self.load()?;
-        
+
         let imported: Vec<MemoryRecord> = serde_json::from_str(json_data)
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
-        
+
         let existing_ids: std::collections::HashSet<String> = 
             records.iter().map(|r| r.id.clone()).collect();
-        
+
         let mut success = 0;
         let mut skipped = 0;
-        
+
         for mut rec in imported {
             if existing_ids.contains(&rec.id) {
                 skipped += 1;
                 continue;
             }
-            
+
             rec.created_at = now_iso();
             rec.updated_at = now_iso();
             records.push(rec);
             success += 1;
         }
-        
+
         atomic_write(&self.memory_path, &records)?;
+
         Ok((success, skipped, 0))
+    }
+
+    /// 获取锁文件路径
+    ///
+    /// # 返回
+    /// 锁文件路径
+    pub fn get_lock_path(&self) -> &std::path::Path {
+        &self.lock_path
+    }
+
+    /// 获取锁类型
+    ///
+    /// # 返回
+    /// 锁类型
+    pub fn get_lock_type(&self) -> LockType {
+        self.lock_type
     }
 }
 
@@ -301,8 +321,17 @@ fn resolve_memory_path(p: Option<&str>) -> PathBuf {
 }
 
 /// 解析锁文件路径
-fn resolve_lock_path(memory_path: &Path) -> PathBuf {
-    memory_path.parent().unwrap().join(DEFAULT_LOCK_NAME)
+/// 解析锁文件路径
+///
+/// # 参数
+/// * `memory_path` - 记忆文件路径
+/// * `lock_type` - 锁文件类型
+///
+/// # 返回
+/// 锁文件路径
+fn resolve_lock_path(memory_path: &Path, lock_type: LockType) -> PathBuf {
+    let lock_name = format!(".copilot-memory{}", lock_type.suffix());
+    memory_path.parent().unwrap().join(lock_name)
 }
 
 /// 使用临时文件 + 重命名模式原子性写入

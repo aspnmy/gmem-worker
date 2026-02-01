@@ -24,6 +24,8 @@ fastrand = "2.0"
 tokio = { version = "1.0", features = ["full"], optional = true }
 reqwest = { version = "0.11", features = ["json"], optional = true }
 dirs = "5.0"
+glob = "0.3"
+ctrlc = "3.4"
 
 [features]
 default = []
@@ -39,9 +41,25 @@ name = "GmemoryStore"
 path = "src/main.rs"
 
 [[bin]]
-name = "gmemory-mcp-server"
+name = "gmemory_mcp_server"
 path = "src/mcp_server.rs"
 required-features = ["full"]
+
+[[bin]]
+name = "organize_timer"
+path = "src/bin/organize_timer.rs"
+
+[[bin]]
+name = "organize_once"
+path = "src/bin/organize_once.rs"
+
+[[bin]]
+name = "remove_timer_lock"
+path = "src/bin/remove_timer_lock.rs"
+
+[[bin]]
+name = "lock_cleaner"
+path = "src/bin/lock_cleaner.rs"
 
 [lib]
 name = "gmem_rust_memory_store"

@@ -194,6 +194,30 @@ Available commands:
 
 ## 核心功能
 
+### MCP 服务器
+
+本项目实现了 MCP (Model Context Protocol) 服务器，用于与 AI 模型进行交互，提供记忆管理功能。
+
+#### 启动 MCP 服务器
+
+```bash
+# 使用默认配置
+cargo run --release --bin gmemory_mcp_server
+
+# 或使用编译后的可执行文件
+target/release/gmemory_mcp_server
+```
+
+#### MCP 服务器工具
+
+MCP 服务器实现了以下工具：
+
+- `add_memory` - 添加新记忆
+- `search_memory` - 搜索记忆
+- `compress_memory` - 压缩记忆
+- `delete_memory` - 删除记忆
+- `get_stats` - 获取记忆存储统计信息
+
 ### 记忆记录结构
 
 ```rust
@@ -268,9 +292,18 @@ gmem_rust_memory_store/
 │   ├── cli.rs         # 命令行接口
 │   ├── lib.rs         # 库入口
 │   ├── main.rs        # CLI 可执行文件
-│   └── mcp_server.rs  # MCP 服务器（预留）
+│   ├── mcp_server.rs  # MCP 服务器
+│   ├── mcp_serialization.rs # MCP 序列化
+├── src/bin/
+│   ├── organize_timer.rs    # 定时整理内存
+│   ├── organize_once.rs     # 单次整理内存
+│   ├── remove_timer_lock.rs # 移除定时锁
+│   ├── lock_cleaner.rs      # 锁清理工具
+│   ├── import_json.rs       # JSON 导入工具
+│   └── ...
 ├── build.rs           # 构建脚本（版本号生成、图标编译）
 ├── build_and_rename.ps1 # 编译和重命名脚本
+├── build_all.ps1      # 一次性编译所有版本脚本
 ├── Cargo.toml         # 项目配置文件
 ├── devrom.ico         # 应用图标
 ├── icon.rc            # 图标资源配置
@@ -302,6 +335,9 @@ cargo build --release
 
 # 或使用 PowerShell 脚本（自动编译并重命名）
 powershell -ExecutionPolicy Bypass -File build_and_rename.ps1
+
+# 一次性编译所有版本（推荐）
+powershell -ExecutionPolicy Bypass -File build_all.ps1
 
 # 运行测试
 cargo test

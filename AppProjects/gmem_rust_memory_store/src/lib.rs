@@ -7,15 +7,24 @@ pub mod compress;
 pub mod cli;
 pub mod config;
 pub mod logs;
+pub mod organize_memory;
+pub mod direct_organize;
+pub mod read_memory;
+pub mod md_processor;
+pub mod mcp_serialization;
 
 pub use record::{MemoryRecord, StoreStats, SearchHit, CompressResult};
 pub use timestamp::{now_iso, make_id};
 pub use keywords::extract_keywords;
-pub use lock::{acquire_lock, release_lock};
+pub use lock::{acquire_lock, release_lock, LockType, acquire_lock_with_cleanup, cleanup_expired_locks};
 pub use store::{MemoryStore, score_record};
 pub use compress::compress_deterministic;
 #[cfg(feature = "llm")]
 pub use compress::compress_with_llm;
 pub use cli::{parse, run_repl};
-pub use config::{Config, load_config, get_config_file_path};
+pub use config::{Config, load_config, get_config_file_path, get_config_string, get_config_path, get_memory_path};
 pub use logs::{init_global_logger, LogConfig, LogLevel, debug, info, warn, error};
+pub use organize_memory::organize_memory;
+pub use direct_organize::direct_organize;
+pub use read_memory::read_memory;
+pub use md_processor::{MdProcessor, MdProcessorOptions, process_single_md_file};

@@ -1,51 +1,46 @@
-use gmem_rust_memory_store::MemoryStore;
-use serde::{Deserialize, Serialize};
+use gmem_rust_memory_store::{MemoryStore, LockType, load_config, mcp_serialization::{JsonRpcRequest, JsonRpcResponse, JsonRpcError, Tool, create_error_response, create_success_response, create_tools_list_response, parse_tool_call_params}};
 use serde_json::{json, Value};
 use std::env;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader as TokioBufReader};
-
-#[derive(Debug, Deserialize, Serialize)]
-struct JsonRpcRequest {
-    jsonrpc: String,
-    id: Value,
-    method: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    params: Option<Value>,
-}
-
-#[derive(Debug, Serialize)]
-struct JsonRpcResponse {
-    jsonrpc: String,
-    id: Value,
-    result: Option<Value>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    error: Option<JsonRpcError>,
-}
-
-#[derive(Debug, Serialize)]
-struct JsonRpcError {
-    code: i32,
-    message: String,
-}
-
-#[derive(Debug, Serialize)]
-struct Tool {
-    name: String,
-    description: String,
-    input_schema: Value,
-}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
     
+    // 加载配置文件
+    let config = load_config(None);
+    
+    // 优先使用命令行参数，否则使用配置文件中的记忆文件路径
     let memory_path = if args.len() > 1 {
         Some(args[1].as_str())
     } else {
-        None
+        config.memory_path.as_deref()
     };
 
-    let store = MemoryStore::new(memory_path);
+    let store = MemoryStore::new(memory_path, Some(LockType::Mcp));
+    let lock_path = store.get_lock_path().to_path_buf();
+    
+    // 设置信号处理，在程序退出时删除锁文件
+    let running = Arc::new(AtomicBool::new(true));
+    let r = running.clone();
+    
+    ctrlc::set_handler(move || {
+        println!("\n正在清理锁文件...");
+        if lock_path.exists() {
+            if let Err(e) = std::fs::remove_file(&lock_path) {
+                eprintln!("删除锁文件失败: {}", e);
+            } else {
+                println!("锁文件已删除");
+            }
+        }
+        r.store(false, Ordering::SeqCst);
+        std::process::exit(0);
+    }).expect("设置信号处理失败");
+    
+    println!("MCP服务器已启动");
+    println!("提示: 按 Ctrl+C 退出程序（会自动清理锁文件）");
     
     let stdin = tokio::io::stdin();
     let stdout = tokio::io::stdout();
@@ -221,65 +216,26 @@ fn handle_tools_list(_store: &MemoryStore, id: Value) -> JsonRpcResponse {
         },
     ];
     
-    JsonRpcResponse {
-        jsonrpc: "2.0".to_string(),
-        id,
-        result: Some(json!({ "tools": tools })),
-        error: None,
-    }
+    create_tools_list_response(id, tools)
 }
 
 async fn handle_tools_call(store: &MemoryStore, params: Option<Value>, id: Value) -> JsonRpcResponse {
-    let params = match params {
-        Some(p) => p,
-        None => {
-            return JsonRpcResponse {
-                jsonrpc: "2.0".to_string(),
-                id,
-                result: None,
-                error: Some(JsonRpcError {
-                    code: -32602,
-                    message: "Invalid params".to_string(),
-                }),
+    match parse_tool_call_params(params) {
+        Ok(tool_call) => {
+            let arguments = tool_call.arguments.unwrap_or(json!({}));
+            
+            match tool_call.name.as_str() {
+                "add_memory" => handle_add_memory(store, arguments, id),
+                "search_memory" => handle_search_memory(store, arguments, id),
+                "compress_memory" => handle_compress_memory(store, arguments, id),
+                "delete_memory" => handle_delete_memory(store, arguments, id),
+                "get_stats" => handle_get_stats(store, id),
+                _ => create_error_response(id, -32601, format!("Tool not found: {}", tool_call.name)),
             }
-        }
-    };
-    
-    let tool_name = match params.get("name") {
-        Some(Value::String(name)) => name.clone(),
-        _ => {
-            return JsonRpcResponse {
-                jsonrpc: "2.0".to_string(),
-                id,
-                result: None,
-                error: Some(JsonRpcError {
-                    code: -32602,
-                    message: "Missing tool name".to_string(),
-                }),
-            }
-        }
-    };
-    
-    let arguments = match params.get("arguments") {
-        Some(args) => args.clone(),
-        None => json!({}),
-    };
-    
-    match tool_name.as_str() {
-        "add_memory" => handle_add_memory(store, arguments, id),
-        "search_memory" => handle_search_memory(store, arguments, id),
-        "compress_memory" => handle_compress_memory(store, arguments, id),
-        "delete_memory" => handle_delete_memory(store, arguments, id),
-        "get_stats" => handle_get_stats(store, id),
-        _ => JsonRpcResponse {
-            jsonrpc: "2.0".to_string(),
-            id,
-            result: None,
-            error: Some(JsonRpcError {
-                code: -32601,
-                message: format!("Tool not found: {}", tool_name),
-            }),
         },
+        Err(error) => {
+            create_error_response(id, -32602, error)
+        }
     }
 }
 
@@ -287,15 +243,7 @@ fn handle_add_memory(store: &MemoryStore, arguments: Value, id: Value) -> JsonRp
     let text = match arguments.get("text") {
         Some(Value::String(t)) => t.clone(),
         _ => {
-            return JsonRpcResponse {
-                jsonrpc: "2.0".to_string(),
-                id,
-                result: None,
-                error: Some(JsonRpcError {
-                    code: -32602,
-                    message: "Missing or invalid text parameter".to_string(),
-                }),
-            }
+            return create_error_response(id, -32602, "Missing or invalid text parameter".to_string());
         }
     };
     
@@ -305,25 +253,12 @@ fn handle_add_memory(store: &MemoryStore, arguments: Value, id: Value) -> JsonRp
     };
     
     match store.add_memory(&text, Some(tags)) {
-        Ok(record) => JsonRpcResponse {
-            jsonrpc: "2.0".to_string(),
-            id,
-            result: Some(json!({
-                "success": true,
-                "id": record.id,
-                "message": "Memory added successfully"
-            })),
-            error: None,
-        },
-        Err(e) => JsonRpcResponse {
-            jsonrpc: "2.0".to_string(),
-            id,
-            result: None,
-            error: Some(JsonRpcError {
-                code: -32603,
-                message: format!("Failed to add memory: {}", e),
-            }),
-        },
+        Ok(record) => create_success_response(id, json!({
+            "success": true,
+            "id": record.id,
+            "message": "Memory added successfully"
+        })),
+        Err(e) => create_error_response(id, -32603, format!("Failed to add memory: {}", e)),
     }
 }
 
@@ -331,15 +266,7 @@ fn handle_search_memory(store: &MemoryStore, arguments: Value, id: Value) -> Jso
     let query = match arguments.get("query") {
         Some(Value::String(q)) => q.clone(),
         _ => {
-            return JsonRpcResponse {
-                jsonrpc: "2.0".to_string(),
-                id,
-                result: None,
-                error: Some(JsonRpcError {
-                    code: -32602,
-                    message: "Missing or invalid query parameter".to_string(),
-                }),
-            }
+            return create_error_response(id, -32602, "Missing or invalid query parameter".to_string());
         }
     };
     
@@ -360,25 +287,12 @@ fn handle_search_memory(store: &MemoryStore, arguments: Value, id: Value) -> Jso
                 })
             }).collect();
             
-            JsonRpcResponse {
-                jsonrpc: "2.0".to_string(),
-                id,
-                result: Some(json!({
-                    "memories": memories,
-                    "count": memories.len()
-                })),
-                error: None,
-            }
+            create_success_response(id, json!({
+                "memories": memories,
+                "count": memories.len()
+            }))
         },
-        Err(e) => JsonRpcResponse {
-            jsonrpc: "2.0".to_string(),
-            id,
-            result: None,
-            error: Some(JsonRpcError {
-                code: -32603,
-                message: format!("Failed to search memory: {}", e),
-            }),
-        },
+        Err(e) => create_error_response(id, -32603, format!("Failed to search memory: {}", e)),
     }
 }
 
@@ -386,15 +300,7 @@ fn handle_compress_memory(store: &MemoryStore, arguments: Value, id: Value) -> J
     let query = match arguments.get("query") {
         Some(Value::String(q)) => q.clone(),
         _ => {
-            return JsonRpcResponse {
-                jsonrpc: "2.0".to_string(),
-                id,
-                result: None,
-                error: Some(JsonRpcError {
-                    code: -32602,
-                    message: "Missing or invalid query parameter".to_string(),
-                }),
-            }
+            return create_error_response(id, -32602, "Missing or invalid query parameter".to_string());
         }
     };
     
@@ -420,26 +326,13 @@ fn handle_compress_memory(store: &MemoryStore, arguments: Value, id: Value) -> J
                 compressed
             );
             
-            JsonRpcResponse {
-                jsonrpc: "2.0".to_string(),
-                id,
-                result: Some(json!({
-                    "compressed": markdown,
-                    "length": markdown.len(),
-                    "budget": budget
-                })),
-                error: None,
-            }
+            create_success_response(id, json!({
+                "compressed": markdown,
+                "length": markdown.len(),
+                "budget": budget
+            }))
         },
-        Err(e) => JsonRpcResponse {
-            jsonrpc: "2.0".to_string(),
-            id,
-            result: None,
-            error: Some(JsonRpcError {
-                code: -32603,
-                message: format!("Failed to compress memory: {}", e),
-            }),
-        },
+        Err(e) => create_error_response(id, -32603, format!("Failed to compress memory: {}", e)),
     }
 }
 
@@ -447,61 +340,27 @@ fn handle_delete_memory(store: &MemoryStore, arguments: Value, id: Value) -> Jso
     let memory_id = match arguments.get("id") {
         Some(Value::String(id)) => id.clone(),
         _ => {
-            return JsonRpcResponse {
-                jsonrpc: "2.0".to_string(),
-                id,
-                result: None,
-                error: Some(JsonRpcError {
-                    code: -32602,
-                    message: "Missing or invalid id parameter".to_string(),
-                }),
-            }
+            return create_error_response(id, -32602, "Missing or invalid id parameter".to_string());
         }
     };
     
     match store.soft_delete(&memory_id) {
-        Ok(_) => JsonRpcResponse {
-            jsonrpc: "2.0".to_string(),
-            id,
-            result: Some(json!({
-                "success": true,
-                "message": "Memory deleted successfully"
-            })),
-            error: None,
-        },
-        Err(e) => JsonRpcResponse {
-            jsonrpc: "2.0".to_string(),
-            id,
-            result: None,
-            error: Some(JsonRpcError {
-                code: -32603,
-                message: format!("Failed to delete memory: {}", e),
-            }),
-        },
+        Ok(_) => create_success_response(id, json!({
+            "success": true,
+            "message": "Memory deleted successfully"
+        })),
+        Err(e) => create_error_response(id, -32603, format!("Failed to delete memory: {}", e)),
     }
 }
 
 fn handle_get_stats(store: &MemoryStore, id: Value) -> JsonRpcResponse {
     match store.compute_stats() {
-        Ok(stats) => JsonRpcResponse {
-            jsonrpc: "2.0".to_string(),
-            id,
-            result: Some(json!({
-                "total": stats.total,
-                "active": stats.active,
-                "deleted": stats.deleted,
-                "tags": stats.tags
-            })),
-            error: None,
-        },
-        Err(e) => JsonRpcResponse {
-            jsonrpc: "2.0".to_string(),
-            id,
-            result: None,
-            error: Some(JsonRpcError {
-                code: -32603,
-                message: format!("Failed to get stats: {}", e),
-            }),
-        },
+        Ok(stats) => create_success_response(id, json!({
+            "total": stats.total,
+            "active": stats.active,
+            "deleted": stats.deleted,
+            "tags": stats.tags
+        })),
+        Err(e) => create_error_response(id, -32603, format!("Failed to get stats: {}", e)),
     }
 }
