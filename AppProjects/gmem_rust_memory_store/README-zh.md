@@ -16,6 +16,8 @@ Rust 实现的高性能、类型安全的 Copilot Memory Store 记忆存储服�
 - **确定性压缩**：将相关记忆压缩为预算约束的 markdown 块
 - **上海时区**：所有时间戳使用 UTC+8 时区
 - **完整 CLI**：提供交互式命令行接口
+- **MCP 服务器**：实现完整的 MCP 协议，支持与 AI 模型交互
+- **配置管理**：支持外部配置文件，灵活控制应用行为
 - **版本管理**：自动生成包含时间戳的版本号
 - **图标嵌入**：支持 Windows 平台的图标嵌入
 - **日志管理**：提供日志的显示、清除和状态查询功能
@@ -35,7 +37,10 @@ cargo build --release
 # 或使用 PowerShell 脚本（自动编译并重命名）
 powershell -ExecutionPolicy Bypass -File build_and_rename.ps1
 
-# 编译后的可执行文件位于 target/release/GmemoryStore_v0.1.0-YYYYMMDDHHSS.exe
+# 或使用一次性编译所有版本的脚本（推荐）
+powershell -ExecutionPolicy Bypass -File build_all.ps1
+
+# 编译后的可执行文件位于 target/release/ 目录
 ```
 
 ### 直接下载
@@ -52,6 +57,16 @@ GmemoryStore
 
 # 指定自定义记忆文件路径
 GmemoryStore /path/to/memory.json
+```
+
+### 启动 MCP 服务器
+
+```bash
+# 使用默认配置
+cargo run --release --bin gmemory_mcp_server
+
+# 或使用编译后的可执行文件
+target/release/gmemory_mcp_server
 ```
 
 ### 命令列表
@@ -192,13 +207,11 @@ Available commands:
   exit                           - Quit CLI
 ```
 
-## 核心功能
-
-### MCP 服务器
+## MCP 服务器
 
 本项目实现了 MCP (Model Context Protocol) 服务器，用于与 AI 模型进行交互，提供记忆管理功能。
 
-#### 启动 MCP 服务器
+### 启动 MCP 服务器
 
 ```bash
 # 使用默认配置
@@ -208,7 +221,7 @@ cargo run --release --bin gmemory_mcp_server
 target/release/gmemory_mcp_server
 ```
 
-#### MCP 服务器工具
+### MCP 服务器工具
 
 MCP 服务器实现了以下工具：
 
@@ -217,6 +230,8 @@ MCP 服务器实现了以下工具：
 - `compress_memory` - 压缩记忆
 - `delete_memory` - 删除记忆
 - `get_stats` - 获取记忆存储统计信息
+
+## 核心功能
 
 ### 记忆记录结构
 
@@ -294,20 +309,29 @@ gmem_rust_memory_store/
 │   ├── main.rs        # CLI 可执行文件
 │   ├── mcp_server.rs  # MCP 服务器
 │   ├── mcp_serialization.rs # MCP 序列化
+│   ├── organize_memory.rs # 内存整理
+│   ├── direct_organize.rs # 直接整理
+│   ├── read_memory.rs # 记忆读取
+│   ├── md_processor.rs # Markdown 处理
 ├── src/bin/
-│   ├── organize_timer.rs    # 定时整理内存
-│   ├── organize_once.rs     # 单次整理内存
+│   ├── cleanall.rs    # 清理所有内容
+│   ├── import_json.rs # 导入 JSON
+│   ├── json_import.rs # JSON 导入
+│   ├── lock_cleaner.rs # 锁清理
+│   ├── md_import.rs   # 导入 Markdown
+│   ├── organize_once.rs # 一次性整理
+│   ├── organize_timer.rs # 定时整理
+│   ├── remove_lock.rs # 移除锁
 │   ├── remove_timer_lock.rs # 移除定时锁
-│   ├── lock_cleaner.rs      # 锁清理工具
-│   ├── import_json.rs       # JSON 导入工具
-│   └── ...
+│   ├── txt_import.rs  # 导入文本
 ├── build.rs           # 构建脚本（版本号生成、图标编译）
-├── build_and_rename.ps1 # 编译和重命名脚本
 ├── build_all.ps1      # 一次性编译所有版本脚本
+├── build_and_rename.ps1 # 编译和重命名脚本
 ├── Cargo.toml         # 项目配置文件
 ├── devrom.ico         # 应用图标
 ├── icon.rc            # 图标资源配置
-├── README.md          # 项目说明文档
+├── README.md          # 项目说明文档（英文）
+├── README-zh.md       # 项目说明文档（中文）
 ├── test_regex.rs      # 测试文件
 ├── ver                # 版本号文件
 └── .gitignore         # Git忽略文件
@@ -317,12 +341,16 @@ gmem_rust_memory_store/
 
 - `chrono` - 时间处理（上海时区支持）
 - `serde` / `serde_json` - 序列化/反序列化
+- `toml` - 配置文件解析
 - `regex` - 正则表达式（关键词提取）
 - `getrandom` - 随机数生成
 - `fastrand` - 快速随机数
+- `tokio` - 异步支持（用于 MCP 服务器）
+- `reqwest` - HTTP 客户端（用于 LLM 压缩功能）
 - `dirs` - 跨平台目录路径
 - `embed-resource` - Windows 图标嵌入
 - `winres` - Windows 资源管理
+- `ctrlc` - 信号处理
 
 ### 编译和测试
 
@@ -355,6 +383,67 @@ cargo fmt
 - `async` - 启用异步支持（需要 tokio）
 - `llm` - 启用 LLM 压缩功能（需要 reqwest）
 - `full` - 启用所有特性（`async` + `llm`）
+
+## 配置文件
+
+配置文件位于 `config/.env.toml`，支持以下配置项：
+
+```toml
+# 项目名称
+project_name = "global-memory-rule"
+
+# DeepSeek API 密钥（可选：启用 LLM 压缩功能）
+deepseek_api_key = ""
+
+# 记忆文件路径（支持相对路径或绝对路径）
+memory_path = "E:\\GmemWorkerHome"
+
+# 备份格式
+backup_format = "markdown"
+
+# 备份间隔（毫秒）
+backup_interval = 7200000
+
+# 备份目录
+backup_dir = ""
+
+# 最大备份数
+max_backups = 20
+
+# 是否压缩备份
+compress_backups = true
+
+# 日志配置
+logs_enabled = false
+logs_dir = "logs/debug"
+logs_max_size = 1048576
+logs_level = "info"
+
+# Debug配置
+debug_enabled = false
+
+# 记忆分类映射（标签到分类的映射）
+[category_mapping]
+rust = "rust"
+git = "git"
+ide = "ide"
+rules = "rules"
+config = "config"
+files = "files"
+directory = "directory"
+wsl = "wsl"
+command-line = "command-line"
+ai_worker = "ai_worker"
+csdn = "blog"
+blog = "blog"
+workflow = "workflow"
+usage = "usage"
+high = "priority"
+medium = "priority"
+markdown = "default"
+file = "default"
+temp = "default"
+```
 
 ## 许可证
 
